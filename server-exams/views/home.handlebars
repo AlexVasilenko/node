@@ -1,0 +1,54 @@
+<script>
+  function getData() {
+    var url = document.querySelector('input[name=url]').value;
+    var element = document.querySelector('input[name=element]').value;
+    var getLevel = document.querySelector('select[name=level]').value || 5;
+    return {
+      url,
+      element,
+      level
+    };
+  }
+
+  function createList(data) {
+    document.querySelector('#result-list').innerHTML = '';
+    var ul = document.createElement('ul');
+    for (var i = 0; i < data.length; i++) {
+      var li = document.createElement('li');
+      li.innerHTML = data[i];
+      ul.appendChild(li);
+    }
+    document.querySelector('#result-list').appendChild(ul);
+  }
+
+  function sendRequest() {
+    var data = getData();
+
+    var Request = CreateRequest();
+
+    Request.onreadystatechange = function() {
+        if (Request.readyState === 4) {
+            if (Request.status === 200) {
+              createList(JSON.parse(Request.data));
+            }
+        }
+    }
+  }
+</script>
+
+<h1>Get data from server</h1>
+
+<form>
+  <input type='text' name='url' required>
+  <input type='text' name='element' required>
+  <select size="5" name="level">
+        <option value="1">Level 1</option>
+        <option value="2">Level 2</option>
+        <option value="3">Level 3</option>
+        <option value="4">Level 4</option>
+        <option value="5">Level 5</option>
+</select>
+  <input type='submit'>
+</form>
+
+<div id="result-list"></div>

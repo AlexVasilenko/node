@@ -1,0 +1,33 @@
+{
+  "name": "node-exam",
+  "version": "0.0.1",
+  "description": "Exam for node.js training",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "./node_modules/.bin/istanbul cover ./node_modules/mocha/bin/_mocha -- -R spec --colors --recursive tests/unit tests/integration"
+  },
+  "keywords": [
+    "node.js"
+  ],
+  "author": "Alex Vasylenko",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^3.4.7",
+    "body-parser": "^1.16.1",
+    "cheerio": "^0.22.0",
+    "express": "^4.14.1",
+    "express-handlebars": "^3.0.0",
+    "got": "^6.7.1",
+    "htmlparser2": "^3.9.2",
+    "q": "^1.4.1",
+    "swagger-express-mw": "^0.7.0",
+    "swagger-tools": "^0.10.1"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.2.0",
+    "supertest": "^3.0.0"
+  }
+}
