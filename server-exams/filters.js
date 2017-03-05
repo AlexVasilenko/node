@@ -1,7 +1,6 @@
 const cheerio = require('cheerio');
 const urlModule = require('url');
 
-
 function _resultUrls (data) {
   let $ = cheerio.load(data);
   const allLinks = [];
@@ -12,49 +11,60 @@ function _resultUrls (data) {
 }
 
 function _filterUnique(data) {
-  const uniqueUrls = [];
-
-  data.map((item) => {
-    const isFind = uniqueUrls.find((itemUnique) => item.pathname === itemUnique.pathname);
-
-    if (!isFind) {
-      uniqueUrls.push(item);
+  const uniqueArr = [];
+  data.forEach(item => {
+    if (!uniqueArr.find(itemUnique => item.pathname === itemUnique.pathname)) {
+      uniqueArr.push(item);
     }
   });
-  return uniqueUrls;
+  return uniqueArr;
 }
 
 function getParts (data) {
-  return data.map((item) => {
+  return data.reduce((arr, item) => {
     const url = urlModule.parse(item);
-    return {
-      protocol: url.protocol,
-      host: url.host,
-      pathname: url.pathname
-    };
-  });
+    if (url.pathname) {
+      arr.push({
+        protocol: url.protocol,
+        host: url.host,
+        pathname: url.pathname
+      });
+    }
+    return arr;
+  }, []);
 }
 
 function _filterMailTo(data) {
-  return data.filter((item) => !(item.protocol && item.protocol.indexOf('http') === -1));
+  return data.filter(item => !String(item.protocol).includes('mailto:'));
 }
 
 function _filterHost(data, currentUrl) {
-  return data.filter((item) => !(item.host && item.host !== currentUrl));
+  return data.filter(item => item.host === currentUrl);
+}
+
+function _enrichMissingData(data, host, protocol){
+  return data.map(item => {
+    if (!item.protocol && !item.host) {
+      item.host = host;
+      item.protocol = protocol;
+    }
+    return item;
+  });
 }
 
 function _filterVisited(data, visited) {
-  return data.filter((item) => !visited[item.pathname]);
+  return data.filter(item => !visited[item.pathname]);
 }
 
 function filterLinks (visited, data, currentUrl) {
-
   const allData = _resultUrls(data);
   const getAllParts = getParts(allData);
   const justUrl = _filterMailTo(getAllParts);
-  const internalLinks = _filterHost(justUrl, currentUrl);
+  const enriched = _enrichMissingData(justUrl, justUrl[0].host, justUrl[0].protocol);
+  const internalLinks = _filterHost(enriched, currentUrl);
   const uniqueUrls = _filterUnique(internalLinks);
-  return _filterVisited(uniqueUrls, visited);
+  const notVisited = _filterVisited(uniqueUrls, visited);
+  return notVisited;
 }
 
 module.exports = {
