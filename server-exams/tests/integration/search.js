@@ -4,6 +4,7 @@ const app = require('./../../app');
 const config = require('./test_config');
 const request = require('supertest')(app);
 
+// please write tests that really test the result, not just statusCode
 describe('Search', () => {
   it('post should return 200 if ok', done => {
     request
