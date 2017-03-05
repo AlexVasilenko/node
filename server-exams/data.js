@@ -1,43 +1,45 @@
 const redis = require('redis');
 const config = require('./config');
-const client = redis.createClient(config.redis);
 const Promise = require('bluebird');
 const filterLinks = require('./filters');
 Promise.promisifyAll(redis.RedisClient.prototype);
 Promise.promisifyAll(redis.Multi.prototype);
+const client = redis.createClient(config.redis);
 const cheerio = require('cheerio');
 const got = require('got');
 const Q = require('q');
 
 
-
+// It didnt even start out of the box - missing dependencies, using wrong variables, missing steps etc.
+// Too much refactoring needed just to make it return any results.
+// Please use linter and write tests that really test the result, not just statusCode.
 function getNewData(results, values) {
-  values.result.visited = Object.assign({}, values.result.visited, resultToVisit(values.urls));
-  let newUrls = [];
-
-  const partResult = results.filter((item) => item.value).reduce((part, data) => {
-     part.data = [...part.data, ...resultData(data.value.body, values.element)];
-     part.urls = [...newUrls, ...filterLinks.filterLinks(values.result.visited, data.value.body, values.result.currentUrl)];
-     return part;
-  }, values.result);
-  partResult.currentLevel++;
-  values.urls = newUrls;
-  values.result.data = [...values.result.data, ...partResult.data];
+  const nowVisited = resultToVisit(values.urls);
+  Object.assign(values.result.visited, nowVisited);
+  values.result.urls = (values.result.urls || []).concat(values.urls);
+  values.urls = [];
+  results.filter(item => item.value)
+    .forEach(data => {
+      values.result.data = values.result.data.concat(resultData(data.value.body, values.element))
+        .filter((item, i, self) => self.indexOf(item) == i);
+      values.urls = values.urls.concat(filterLinks.filterLinks(values.result.visited, data.value.body, values.currentUrl));
+    });
   values.result.currentLevel++;
-
-  console.log(values);
   getUrl(values);
 }
 
 function getUrl(params) {
-  console.log('res');
   if (params.level === params.result.currentLevel || !params.urls.length) {
-    //client.set(`${params.currentUrl}/${params.element}/${params.level}`, JSON.stringify(result.data));
-    //client.expireAsync(`${urls[0]}/${element}/${level}`, config.app.expire);
-    params.send.json(params.result.data);
+    const key = `${params.result.urls[0].host}/${params.element}/${params.level}`;
+    const value = JSON.stringify(params.result.data);
+    return client.setAsync(key, value, 'EX', config.app.expire)
+      .then(() => params.send.send(value))
+      .catch(err => params.send.status(500).send(err));
   }
 
-  const allUrls = params.urls.map((item) => got(`${item.protocol}//${item.host || params.currentUrl}${item.pathname}`));
+  const allUrls = params.urls
+    .map(item => `${item.protocol}//${item.host || params.currentUrl}${item.pathname}`)
+    .map(url => got(url));
 
   Q.allSettled(allUrls).then((data) => {
     getNewData(data, params);
@@ -45,11 +47,10 @@ function getUrl(params) {
 }
 
 function resultToVisit (data) {
-  const result = {};
-  data.map((item) => {
+  return data.reduce((result, item) => {
     result[item.pathname] = true;
-  });
-  return result;
+    return result;
+  }, {});
 }
 
 function resultData (data, element) {
