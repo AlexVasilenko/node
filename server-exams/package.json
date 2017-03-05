@@ -21,6 +21,7 @@
     "got": "^6.7.1",
     "htmlparser2": "^3.9.2",
     "q": "^1.4.1",
+    "redis": "^2.6.5",
     "swagger-express-mw": "^0.7.0",
     "swagger-tools": "^0.10.1"
   },
